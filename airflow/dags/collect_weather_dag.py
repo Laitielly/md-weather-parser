@@ -16,46 +16,46 @@ FASTAPI_BASE = f"http://{FASTAPI_HOST}:{FASTAPI_PORT}"
 
 DEFAULT_ARGS = {
     "owner": "airflow",
-    "retries": 1,
-    "retry_delay": timedelta(minutes=2),
+    "retries": 2,
+    "retry_delay": timedelta(minutes=5),
 }
 
 
-def call_generate(n=50, timeout=30, **context):
-    url = f"{FASTAPI_BASE}/generate"
-    params = {"n": n}
+def call_collect_all(timeout=30, **context):
+    """Вызов API для сбора текущей погоды и прогноза"""
+    url = f"{FASTAPI_BASE}/collect/all"
     try:
-        r = requests.post(url, params=params, timeout=timeout)
+        r = requests.post(url, timeout=timeout)
         r.raise_for_status()
         data = r.json()
-        log.info("FastAPI generate response: %s", data)
+        log.info("Weather collection response: %s", data)
         return data
     except Exception as e:
-        log.exception("Failed to call FastAPI /generate: %s", e)
+        log.exception("Failed to call FastAPI /collect/all: %s", e)
         raise
 
 
 with DAG(
-    dag_id="ingest_to_mongo",
+    dag_id="collect_weather_data",
     start_date=days_ago(1),
-    schedule_interval="0 * * * *",
+    schedule_interval="0 * * * *",  # Каждый час
     catchup=False,
     default_args=DEFAULT_ARGS,
-    tags=["ingest", "mongo", "mock"],
+    tags=["weather", "collect", "openweather"],
 ) as dag:
 
-    t_call_generate = PythonOperator(
-        task_id="call_fastapi_generate",
-        python_callable=call_generate,
-        op_kwargs={"n": 60},
+    t_collect_weather = PythonOperator(
+        task_id="collect_current_and_forecast",
+        python_callable=call_collect_all,
+        op_kwargs={"timeout": 60},
     )
 
     t_trigger_elt = TriggerDagRunOperator(
-        task_id="trigger_mongo_to_postgres_elt",
-        trigger_dag_id="mongo_to_postgres_elt",
+        task_id="trigger_weather_elt",
+        trigger_dag_id="weather_elt",
         reset_dag_run=True,
         wait_for_completion=False,
         poke_interval=30,
     )
 
-    t_call_generate >> t_trigger_elt
+    t_collect_weather >> t_trigger_elt
