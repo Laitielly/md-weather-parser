@@ -25,6 +25,18 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+__pycache__/
+*.pyc
+.env
+.idea/
+.vscode/
+.DS_Store
+airflow/logs/
+airflow/airflow.db
+postgres_data/
+postgres_analytics_data/
+mongo_data/
+plugins/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
