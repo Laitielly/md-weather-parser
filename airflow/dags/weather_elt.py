@@ -189,7 +189,9 @@ def load_current_weather(**context):
             ON CONFLICT (id) DO NOTHING;
         """
 
-        psycopg2.extras.execute_values(cur, insert_sql, vals, template=None, page_size=100)
+        psycopg2.extras.execute_values(
+            cur, insert_sql, vals, template=None, page_size=100
+        )
         inserted = cur.rowcount
         log.info("Loaded %s current weather rows into Postgres", inserted)
 
@@ -279,7 +281,9 @@ def load_forecasts(**context):
             ON CONFLICT (id) DO NOTHING;
         """
 
-        psycopg2.extras.execute_values(cur, insert_sql, vals, template=None, page_size=100)
+        psycopg2.extras.execute_values(
+            cur, insert_sql, vals, template=None, page_size=100
+        )
         inserted = cur.rowcount
         log.info("Loaded %s forecast rows into Postgres", inserted)
 
@@ -487,7 +491,9 @@ def generate_accuracy_report(**context):
             latest_forecast,
         ) = stats
 
-        weather_accuracy = (weather_matches / total_checked * 100) if total_checked > 0 else 0
+        weather_accuracy = (
+            (weather_matches / total_checked * 100) if total_checked > 0 else 0
+        )
 
         report = {
             "period": "last_24_hours",
@@ -497,7 +503,9 @@ def generate_accuracy_report(**context):
             "avg_humidity_error_percent": round(float(avg_humidity_error or 0), 1),
             "avg_pressure_error_hpa": round(float(avg_pressure_error or 0), 1),
             "weather_type_accuracy_percent": round(weather_accuracy, 1),
-            "earliest_forecast": (earliest_forecast.isoformat() if earliest_forecast else None),
+            "earliest_forecast": (
+                earliest_forecast.isoformat() if earliest_forecast else None
+            ),
             "latest_forecast": latest_forecast.isoformat() if latest_forecast else None,
             "generated_at": datetime.utcnow().isoformat(),
         }

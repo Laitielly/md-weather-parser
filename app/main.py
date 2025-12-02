@@ -190,7 +190,9 @@ def mock_current_weather() -> Dict[str, Any]:
         "wind_speed": round(random.uniform(0, 10), 1),
         "wind_deg": random.randint(0, 360),
         "weather_main": random.choice(["Clear", "Clouds", "Rain", "Snow"]),
-        "weather_description": random.choice(["ясно", "облачно", "легкий дождь", "снег"]),
+        "weather_description": random.choice(
+            ["ясно", "облачно", "легкий дождь", "снег"]
+        ),
         "clouds": random.randint(0, 100),
         "visibility": random.randint(5000, 20000),
         "collected_ts": now,
@@ -221,7 +223,9 @@ def mock_forecast() -> List[Dict[str, Any]]:
                 "wind_speed": round(random.uniform(0, 10), 1),
                 "wind_deg": random.randint(0, 360),
                 "weather_main": random.choice(["Clear", "Clouds", "Rain", "Snow"]),
-                "weather_description": random.choice(["ясно", "облачно", "легкий дождь", "снег"]),
+                "weather_description": random.choice(
+                    ["ясно", "облачно", "легкий дождь", "снег"]
+                ),
                 "clouds": random.randint(0, 100),
                 "pop": round(random.uniform(0, 0.8), 2),  # Вероятность осадков 0-80%
             }
@@ -237,7 +241,9 @@ def collect_weather_data():
             # Сбор текущей погоды
             current_weather = get_current_weather()
             if current_weather:
-                current_collection.insert_one({"_id": str(uuid.uuid4()), **current_weather})
+                current_collection.insert_one(
+                    {"_id": str(uuid.uuid4()), **current_weather}
+                )
                 print(f"Collected current weather at {current_weather['collected_ts']}")
 
             # Сбор прогноза
@@ -269,7 +275,9 @@ def collect_current_weather():
     try:
         current_weather = get_current_weather()
         if current_weather:
-            result = current_collection.insert_one({"_id": str(uuid.uuid4()), **current_weather})
+            result = current_collection.insert_one(
+                {"_id": str(uuid.uuid4()), **current_weather}
+            )
             return {"status": "success", "inserted_id": str(result.inserted_id)}
         return {"status": "error", "message": "No data received"}
     except Exception as e:
@@ -300,7 +308,9 @@ def collect_all_weather():
         current_weather = get_current_weather()
         current_id = None
         if current_weather:
-            result = current_collection.insert_one({"_id": str(uuid.uuid4()), **current_weather})
+            result = current_collection.insert_one(
+                {"_id": str(uuid.uuid4()), **current_weather}
+            )
             current_id = str(result.inserted_id)
 
         # Сбор прогноза
@@ -345,9 +355,9 @@ def get_latest_forecast():
 
     # Получаем все прогнозы из последнего сбора
     forecasts = list(
-        forecast_collection.find({"collection_dt": latest_collection["collection_dt"]}).sort(
-            "forecast_dt", 1
-        )
+        forecast_collection.find(
+            {"collection_dt": latest_collection["collection_dt"]}
+        ).sort("forecast_dt", 1)
     )
 
     for doc in forecasts:
@@ -360,7 +370,11 @@ def get_latest_forecast():
 def get_weather_history(hours: int = Query(24, ge=1, le=168)):
     """История текущей погоды за указанное количество часов"""
     cutoff = datetime.utcnow() - timedelta(hours=hours)
-    docs = list(current_collection.find({"collected_ts": {"$gte": cutoff}}).sort("collected_ts", 1))
+    docs = list(
+        current_collection.find({"collected_ts": {"$gte": cutoff}}).sort(
+            "collected_ts", 1
+        )
+    )
 
     for doc in docs:
         doc["_id"] = str(doc["_id"])
@@ -376,7 +390,9 @@ def stats():
 
     # Средняя температура за последние 24 часа
     cutoff = datetime.utcnow() - timedelta(hours=24)
-    recent_temps = list(current_collection.find({"collected_ts": {"$gte": cutoff}}, {"temp": 1}))
+    recent_temps = list(
+        current_collection.find({"collected_ts": {"$gte": cutoff}}, {"temp": 1})
+    )
 
     avg_temp = None
     if recent_temps:
