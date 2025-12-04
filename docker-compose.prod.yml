@@ -112,6 +112,8 @@ services:
       - mongodb
       - postgres_analytics
     restart: "no"
+    volumes:
+      -./airflow/dags:/opt/airflow/dags
 
   airflow-webserver:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
