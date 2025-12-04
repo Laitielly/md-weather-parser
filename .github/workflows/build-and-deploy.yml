@@ -1,0 +1,107 @@
+name: Build and deploy images
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_OWNER }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build & push app image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          file: ./app/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_app:latest
+            ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_app:${{ github.sha }}
+
+      - name: Build & push airflow image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./airflow
+          file: ./airflow/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_airflow_elt:latest
+            ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_airflow_elt:${{ github.sha }}
+
+  deploy:
+    name: Deploy to production
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: http://${{ secrets.SERVER_HOST }}:8080
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Ensure /srv/myproject exists on server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            sudo mkdir -p /srv/myproject
+            sudo chown -R $USER:$USER /srv/myproject || true
+
+      - name: Upload docker-compose.prod.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          source: "docker-compose.prod.yml"
+          target: "/srv/myproject/"
+
+      - name: Create .env on server from ENV_FILE
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            printf "%s\n" "${{ secrets.ENV_FILE }}" > /srv/myproject/.env
+            chmod 600 /srv/myproject/.env
+            ls -la /srv/myproject/.env
+
+      - name: Pull images and bring up compose
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            cd /srv/myproject
+            docker compose -f docker-compose.prod.yml pull --ignore-pull-failures
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f
+            docker compose -f docker-compose.prod.yml ps
