@@ -1,6 +1,7 @@
 name: Build and deploy images
 
 on:
+  workflow_dispatch:
   push:
     branches: ["main"]
 
@@ -56,9 +57,12 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: http://${{ secrets.SERVER_HOST }}:8080
+
     if: github.ref == 'refs/heads/main'
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
       - name: Ensure /srv/myproject exists on server
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -92,7 +96,7 @@ jobs:
             chmod 600 /srv/myproject/.env
             ls -la /srv/myproject/.env
 
-      - name: Pull images and bring up compose
+      - name: Cleanup, Pull images and bring up compose
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -101,7 +105,8 @@ jobs:
           port: 22
           script: |
             cd /srv/myproject
-            docker compose -f docker-compose.prod.yml pull --ignore-pull-failures
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker-compose -f docker-compose.prod.yml down -v --rmi local || true 
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
             docker image prune -f
-            docker compose -f docker-compose.prod.yml ps
+            docker-compose -f docker-compose.prod.yml ps

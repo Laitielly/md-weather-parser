@@ -1,9 +1,0 @@
-services:
-  airflow-webserver:
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-  airflow-scheduler:
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-  airflow-worker:
-    command: bash -c "echo 'worker not needed in LocalExecutor' && sleep infinity"
