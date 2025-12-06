@@ -133,10 +133,8 @@ AIRFLOW_UID=50000
 
 | Название | Порт | Адрес | Учетные данные |
 | :--- | :--- | :--- | :--- |
-| Airflow Webserver | 8080 | `http://localhost:8080` | admin / admin |
-| FastAPI App | 8081 | `http://localhost:8081` | N/A |
-| Postgres Analytics | 5433 | `localhost:5433` | pguser / pgpass |
+| Airflow Webserver | 8080 | [ссылка](http://89.169.170.56:8080/home) | admin / admin |
+| FastAPI App | 8081 | [ссылка](http://89.169.170.56:8081/docs) | N/A |
+| Postgres Analytics | 5433 | [ссылка](http://89.169.170.56:5433/docs) | pguser / pgpass |
+| Mongo | 27017 | [ссылка](http://89.169.170.56:27017/docs) | admin / secret |
 
-### Активация конвейеров
-
-После успешного запуска перейдите в веб-интерфейс Airflow (`localhost:8080`) и включите оба DAG. Сбор данных начнется согласно расписанию.
