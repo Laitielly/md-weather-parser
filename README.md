@@ -120,14 +120,44 @@ docker-compose up -d --build
 
 **MongoDB:**
 
+Доступные юзеру коллекции: 
+ - current_weather
+ - forecasts
+
+Пример:
+```
+In: use weather_db
+Out: switched to db weather_db
+
+In: <weather_db> db.current_weather.findOne()
+Out:
+{
+  _id: 'f8d1f253-17dc-412c-8ad2-bdfd152d34e6',
+  city: 'Kaliningrad',
+  country: 'RU',
+  dt: 1764872170,
+  temp: 18.7,
+  feels_like: 16,
+  pressure: 1009,
+  humidity: 66,
+  wind_speed: 1.9,
+  wind_deg: 54,
+  weather_main: 'Clouds',
+  weather_description: 'снег',
+  clouds: 95,
+  visibility: 7857,
+  collected_ts: ISODate('2025-12-04T18:16:10.443Z')
+}
+```
+
 ```env
 MONGO_INITDB_ROOT_USERNAME=readonly
 MONGO_INITDB_ROOT_PASSWORD=readonlypass
 MONGO_HOST=mongodb.app.orb.local
 MONGO_PORT=27017
-MONGO_INITDB_DATABASE=prod
+MONGO_INITDB_DATABASE=weather_db
 
-MONGO_URL=mongodb://readonly:readonlypass@mongodb.app.orb.local:27017/prod?authSource=prod
+MONGO_URL=mongodb://readonly:readonlypass@mongodb.app.orb.local:27017/weather_db?authSource=weather_db
 ```
 
 **Postgres Analytics:**
