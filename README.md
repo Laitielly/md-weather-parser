@@ -153,11 +153,11 @@ Out:
 ```env
 MONGO_INITDB_ROOT_USERNAME=readonly
 MONGO_INITDB_ROOT_PASSWORD=readonlypass
-MONGO_HOST=mongodb.app.orb.local
+MONGO_HOST=89.169.170.56
 MONGO_PORT=27017
 MONGO_INITDB_DATABASE=weather_db
 
-MONGO_URL=mongodb://readonly:readonlypass@mongodb.app.orb.local:27017/weather_db?authSource=weather_db
+MONGO_URL=mongodb://readonly:readonlypass@89.169.170.56:27017/weather_db?authSource=weather_db
 ```
 
 **Postgres Analytics:**
@@ -165,9 +165,9 @@ MONGO_URL=mongodb://readonly:readonlypass@mongodb.app.orb.local:27017/weather_db
 ```env
 POSTGRES_USER=readonly
 POSTGRES_PASSWORD=readonlypass
-POSTGRES_HOST=postgres.app.orb.local
+POSTGRES_HOST=89.169.170.56
 POSTGRES_PORT=5433
 POSTGRES_DB=analytics
 
-POSTGRES_URL=postgresql://readonly:readonlypass@postgres.app.orb.local:5433/analytics
+POSTGRES_URL=postgresql://readonly:readonlypass@89.169.170.56:5433/analytics
 ```
