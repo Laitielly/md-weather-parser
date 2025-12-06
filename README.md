@@ -105,36 +105,39 @@ docker-compose up -d --build
 
 > Примечание: Для гарантии чистой инициализации базы данных (PostgreSQL и MongoDB), особенно после изменений в `.env` или предыдущих ошибок, используйте флаг `-v` (удаление томов): `docker-compose down -v && docker-compose up -d --build`.
 
-Пример `.env`:
-```
-# Mongo
-MONGO_INITDB_ROOT_USERNAME=admin
-MONGO_INITDB_ROOT_PASSWORD=secret
-
-# Postgres (Airflow Metadata)
-POSTGRES_USER=airflow
-POSTGRES_PASSWORD=airflow
-AIRFLOW_DB=airflow
-
-# Postgres (Analytics)
-ANALYTICS_DB_NAME=analytics
-ANALYTICS_DB_USER=pguser
-ANALYTICS_DB_PASSWORD=pgpass
-
-# Airflow web creds
-AIRFLOW_WWW_USER_USERNAME=admin
-AIRFLOW_WWW_USER_PASSWORD=admin
-
-# Airflow UID (Linux ID mapping)
-AIRFLOW_UID=50000
-```
-
 ### Доступ к интерфейсам
 
-| Название | Порт | Адрес | Учетные данные |
-| :--- | :--- | :--- | :--- |
-| Airflow Webserver | 8080 | [ссылка](http://89.169.170.56:8080/home) | admin / admin |
-| FastAPI App | 8081 | [ссылка](http://89.169.170.56:8081/docs) | N/A |
-| Postgres Analytics | 5433 | [ссылка](http://89.169.170.56:5433/docs) | pguser / pgpass |
-| Mongo | 27017 | [ссылка](http://89.169.170.56:27017/docs) | admin / secret |
+| Название                      | Порт  | Адрес                                    | Учетные данные          |
+| :---------------------------- | :---- | :--------------------------------------- | :---------------------- |
+| Airflow Webserver             | 8080  | [ссылка](http://89.169.170.56:8080/home) | admin / admin           |
+| FastAPI App                   | 8081  | [ссылка](http://89.169.170.56:8081/docs) | N/A                     |
+| Postgres Analytics | 5433  | [ссылка](http://89.169.170.56:5433/docs) | readonly / readonlypass |
+| Mongo | 27017 | [ссылка](http://89.169.170.56:27017)     | readonly / readonlypass |
 
+---
+
+### URL подключения
+
+**MongoDB:**
+
+```env
+MONGO_INITDB_ROOT_USERNAME=readonly
+MONGO_INITDB_ROOT_PASSWORD=readonlypass
+MONGO_HOST=mongodb.app.orb.local
+MONGO_PORT=27017
+MONGO_INITDB_DATABASE=prod
+
+MONGO_URL=mongodb://readonly:readonlypass@mongodb.app.orb.local:27017/prod?authSource=prod
+```
+
+**Postgres Analytics:**
+
+```env
+POSTGRES_USER=readonly
+POSTGRES_PASSWORD=readonlypass
+POSTGRES_HOST=postgres.app.orb.local
+POSTGRES_PORT=5433
+POSTGRES_DB=analytics
+
+POSTGRES_URL=postgresql://readonly:readonlypass@postgres.app.orb.local:5433/analytics
+```

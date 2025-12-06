@@ -38,7 +38,7 @@ services:
     volumes:
       - postgres_analytics_data:/var/lib/postgresql/data
     ports:
-    - "5433:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${ANALYTICS_DB_USER:-pguser}", "-d", "${ANALYTICS_DB_NAME:-analytics}"]
       interval: 5s
@@ -53,7 +53,7 @@ services:
     volumes:
       - mongo_data:/data/db
     ports:
-    - "27017:27017"
+      - "27017:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--username", "${MONGO_INITDB_ROOT_USERNAME}", "--password", "${MONGO_INITDB_ROOT_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
       interval: 10s
