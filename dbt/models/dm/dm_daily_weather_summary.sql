@@ -18,7 +18,7 @@ WITH daily_weather AS (
         MODE() WITHIN GROUP (ORDER BY weather_main) as most_common_weather,
         SUM(CASE WHEN precipitation_probability > 0.5 THEN 1 ELSE 0 END) as high_precipitation_hours
     FROM {{ ref('fact_weather_measurements') }} f
-    LEFT JOIN {{ ref('ods_forecasts') }} of ON f.weather_type_id = {{ dbt_utils.surrogate_key(['of.forecasted_weather_main', 'of.forecasted_temperature_category']) }}
+    LEFT JOIN {{ ref('ods_forecasts') }} of ON f.weather_type_id = {{ dbt_utils.generate_surrogate_key(['of.forecasted_weather_main', 'of.forecasted_temperature_category']) }}
     GROUP BY 1
 ),
 

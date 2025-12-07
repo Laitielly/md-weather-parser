@@ -4,9 +4,9 @@
 ) }}
 
 SELECT
-    {{ dbt_utils.surrogate_key(['w.weather_id', 'w.measurement_ts']) }} as measurement_id,
-    {{ dbt_utils.surrogate_key(['DATE_TRUNC(\'hour\', w.measurement_ts)']) }} as time_key,
-    {{ dbt_utils.surrogate_key(['w.weather_main', 'w.temperature_category']) }} as weather_type_id,
+    {{ dbt_utils.generate_surrogate_key(['w.weather_id', 'w.measurement_ts']) }} as measurement_id,
+    {{ dbt_utils.generate_surrogate_key(['DATE_TRUNC(\'hour\', w.measurement_ts)']) }} as time_key,
+    {{ dbt_utils.generate_surrogate_key(['w.weather_main', 'w.temperature_category']) }} as weather_type_id,
     w.weather_id,
     w.measurement_ts,
     w.temperature_c,

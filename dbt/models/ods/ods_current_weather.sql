@@ -38,7 +38,7 @@ SELECT
         WHEN humidity_percent < 80 THEN 'humid'
         ELSE 'very_humid'
     END as humidity_category,
-    {{ dbt_utils.surrogate_key(['weather_main', 'temperature_category']) }} as weather_condition_id
+    {{ dbt_utils.generate_surrogate_key(['weather_main', 'temperature_category']) }} as weather_condition_id
 FROM {{ ref('stg_current_weather') }}
 WHERE is_valid_measurement = true
 

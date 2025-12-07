@@ -47,6 +47,6 @@ enriched AS (
 )
 
 SELECT
-    {{ dbt_utils.surrogate_key(['hour_ts']) }} as time_key,
+    {{ dbt_utils.generate_surrogate_key(['hour_ts']) }} as time_key,
     *
 FROM enriched

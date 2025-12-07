@@ -6,7 +6,7 @@ weather_analytics:
       host: "{{ env_var('POSTGRES_ANALYTICS_HOST', 'localhost') }}"
       user: "{{ env_var('POSTGRES_ANALYTICS_USER', 'pguser') }}"
       pass: "{{ env_var('POSTGRES_ANALYTICS_PASSWORD', 'pgpass') }}"
-      port: "{{ env_var('POSTGRES_ANALYTICS_PORT', 5433) | int }}"
+      port: "{{ env_var('POSTGRES_ANALYTICS_PORT', 5432) | int }}"
       dbname: "{{ env_var('POSTGRES_ANALYTICS_DB', 'analytics') }}"
       schema: "analytics"
       threads: 4
@@ -16,7 +16,7 @@ weather_analytics:
       host: "{{ env_var('POSTGRES_ANALYTICS_HOST', 'localhost') }}"
       user: "{{ env_var('POSTGRES_ANALYTICS_USER', 'pguser') }}"
       pass: "{{ env_var('POSTGRES_ANALYTICS_PASSWORD', 'pgpass') }}"
-      port: "{{ env_var('POSTGRES_ANALYTICS_PORT', 5433) | int }}"
+      port: "{{ env_var('POSTGRES_ANALYTICS_PORT', 5432) | int }}"
       dbname: "{{ env_var('POSTGRES_ANALYTICS_DB', 'analytics') }}"
       schema: "analytics"
       threads: 8

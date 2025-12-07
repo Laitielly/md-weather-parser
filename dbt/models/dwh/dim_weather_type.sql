@@ -4,7 +4,7 @@
 ) }}
 
 SELECT
-    {{ dbt_utils.surrogate_key(['weather_main', 'temperature_category']) }} as weather_type_id,
+    {{ dbt_utils.generate_surrogate_key(['weather_main', 'temperature_category']) }} as weather_type_id,
     weather_main,
     temperature_category,
     COUNT(*) as measurement_count

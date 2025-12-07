@@ -45,6 +45,7 @@ tests:
     +severity: warn
 
 vars:
+  surrogate_key_treat_nulls_as_empty_strings: true
   elementary_database: "{{ target.database }}"
   elementary_schema: "elementary"
   
