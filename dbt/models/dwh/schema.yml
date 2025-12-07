@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: dim_time
+    description: "Измерение времени"
+    columns:
+      - name: time_key
+        tests:
+          - unique
+          - not_null
+          
+  - name: dim_weather_type
+    description: "Измерение типа погоды"
+    columns:
+      - name: weather_type_id
+        tests:
+          - unique
+          - not_null
+          
+  - name: fact_weather_measurements
+    description: "Фактические измерения погоды"
+    columns:
+      - name: measurement_id
+        tests:
+          - unique
+          - not_null

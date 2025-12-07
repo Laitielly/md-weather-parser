@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: dm_daily_weather_summary
+    description: "Ежедневная сводка погоды"
+    
+  - name: dm_forecast_accuracy_daily
+    description: "Ежедневная точность прогнозов"
+    
+  - name: dm_hourly_weather_trends
+    description: "Почасовые тренды погоды"

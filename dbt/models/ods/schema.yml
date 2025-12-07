@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: ods_current_weather
+    description: "Операционные данные текущей погоды с инкрементальной загрузкой"
+    config:
+      materialized: incremental
+      unique_key: weather_id
+      incremental_strategy: merge
+    columns:
+      - name: weather_id
+        tests:
+          - unique
+          - not_null
+          
+  - name: ods_forecasts
+    description: "Операционные данные прогнозов с инкрементальной загрузкой"
+    config:
+      materialized: incremental
+      unique_key: forecast_id
+      incremental_strategy: merge
+    columns:
+      - name: forecast_id
+        tests:
+          - unique
+          - not_null

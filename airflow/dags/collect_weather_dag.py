@@ -59,3 +59,13 @@ with DAG(
     )
 
     t_collect_weather >> t_trigger_elt
+
+    t_trigger_dbt = TriggerDagRunOperator(
+        task_id="trigger_dbt_pipeline",
+        trigger_dag_id="dbt_weather_pipeline",
+        reset_dag_run=True,
+        wait_for_completion=False,
+        poke_interval=60,
+    )
+
+    t_collect_weather >> t_trigger_elt >> t_trigger_dbt

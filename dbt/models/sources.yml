@@ -1,0 +1,52 @@
+version: 2
+
+sources:
+  - name: analytics
+    database: analytics
+    schema: analytics
+    tables:
+      - name: current_weather
+        description: "Текущая погода (сырые данные из MongoDB)"
+        loaded_at_field: created_at
+        columns:
+          - name: id
+            description: "Уникальный идентификатор записи"
+            tests:
+              - unique
+              - not_null
+          - name: temp
+            description: "Температура в градусах Цельсия"
+            tests:
+              - not_null
+          - name: collected_ts
+            description: "Время сбора данных"
+            tests:
+              - not_null
+              
+      - name: forecasts
+        description: "Прогнозы погоды (сырые данные из MongoDB)"
+        loaded_at_field: created_at
+        columns:
+          - name: id
+            description: "Уникальный идентификатор записи"
+            tests:
+              - unique
+              - not_null
+          - name: forecast_dt
+            description: "Время прогноза (Unix timestamp)"
+            tests:
+              - not_null
+          - name: collection_dt
+            description: "Время сбора прогноза"
+            tests:
+              - not_null
+              
+      - name: accuracy_metrics
+        description: "Метрики точности прогнозов"
+        loaded_at_field: created_at
+        columns:
+          - name: id
+            description: "Уникальный идентификатор записи"
+            tests:
+              - unique
+              - not_null

@@ -1,0 +1,54 @@
+version: 2
+
+models:
+  - name: stg_current_weather
+    description: "Очищенные данные текущей погоды"
+    columns:
+      - name: weather_id
+        description: "Уникальный ID измерения погоды"
+        tests:
+          - unique
+          - not_null
+      - name: measurement_ts
+        description: "Время измерения погоды"
+        tests:
+          - not_null
+      - name: temperature_c
+        description: "Температура в градусах Цельсия"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: -50
+              max_value: 50
+              
+  - name: stg_forecasts
+    description: "Очищенные данные прогнозов"
+    columns:
+      - name: forecast_id
+        description: "Уникальный ID прогноза"
+        tests:
+          - unique
+          - not_null
+      - name: forecast_ts
+        description: "Время прогноза"
+        tests:
+          - not_null
+      - name: forecasted_temperature
+        description: "Прогнозируемая температура"
+        tests:
+          - not_null
+
+tests:
+  - elementary.volume_anomalies:
+      table_name: "{{ model.name }}"
+      time_bucket:
+        period: day
+        count: 1
+      sensitivity: 3
+      
+  - elementary.freshness_anomalies:
+      table_name: "{{ model.name }}"
+      timestamp_column: collected_at
+      time_bucket:
+        period: hour
+        count: 1

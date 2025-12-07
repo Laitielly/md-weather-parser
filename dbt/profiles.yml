@@ -1,0 +1,23 @@
+weather_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('POSTGRES_ANALYTICS_HOST', 'localhost') }}"
+      user: "{{ env_var('POSTGRES_ANALYTICS_USER', 'pguser') }}"
+      pass: "{{ env_var('POSTGRES_ANALYTICS_PASSWORD', 'pgpass') }}"
+      port: "{{ env_var('POSTGRES_ANALYTICS_PORT', 5433) | int }}"
+      dbname: "{{ env_var('POSTGRES_ANALYTICS_DB', 'analytics') }}"
+      schema: "analytics"
+      threads: 4
+      keepalives_idle: 0
+    prod:
+      type: postgres
+      host: "{{ env_var('POSTGRES_ANALYTICS_HOST', 'localhost') }}"
+      user: "{{ env_var('POSTGRES_ANALYTICS_USER', 'pguser') }}"
+      pass: "{{ env_var('POSTGRES_ANALYTICS_PASSWORD', 'pgpass') }}"
+      port: "{{ env_var('POSTGRES_ANALYTICS_PORT', 5433) | int }}"
+      dbname: "{{ env_var('POSTGRES_ANALYTICS_DB', 'analytics') }}"
+      schema: "analytics"
+      threads: 8
+      keepalives_idle: 0
