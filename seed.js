@@ -118,9 +118,6 @@ for (let i = 0; i < 100; i++) {
     });
 }
 
-// Вставляем данные точности в отдельную коллекцию (если нужно)
-db.accuracy_metrics.insertMany(accuracyData);
-
 // Статистика
 const currentCount = db.current_weather.countDocuments();
 const forecastCount = db.forecasts.countDocuments();

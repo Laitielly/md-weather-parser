@@ -7,19 +7,33 @@ models:
       tags: ["ods", "critical"]
     
     tests:
+      - elementary.all_columns_anomalies
+      - elementary.event_freshness:
+          time_bucket:
+            period: hour
+            count: 1
+            timestamp_column: observation_dt
+      - elementary.freshness:
+          warn_after: {count: 2, period: hour}
+          error_after: {count: 4, period: hour}
+          timestamp_column: loaded_at
+      - elementary.dimension_anomalies:
+          dimensions: ["city", "weather_main"]
       - elementary.schema_changes_from_baseline
-      - elementary.freshness_anomalies:
-          timestamp_column: "loaded_at"
+      - elementary.table_volume_anomalies
           
     columns:
       - name: city
         description: "Название города"
         tests:
           - not_null
+          - accepted_values:
+              values: ['Kaliningrad']
       - name: temp
         description: "Температура в градусах Цельсия"
         tests:
           - is_realistic_temperature
+          - elementary.column_anomalies
       - name: observation_dt
         tests:
           - not_null
@@ -27,6 +41,10 @@ models:
         description: "Время загрузки записи в ODS"
         tests:
           - not_null
+      - name: humidity
+        tests:
+          - elementary.column_anomalies
+          - valid_humidity_range
           
   - name: dm_daily_stats
     description: "Ежедневная статистика по городам"
@@ -35,3 +53,6 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              to: ref('ods_weather_history')
+              field: city
