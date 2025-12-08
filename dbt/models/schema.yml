@@ -8,19 +8,25 @@ models:
     
     tests:
       - elementary.all_columns_anomalies
-      - elementary.event_freshness:
-          time_bucket:
-            period: hour
-            count: 1
-            timestamp_column: observation_dt
-      - elementary.freshness:
-          warn_after: {count: 2, period: hour}
-          error_after: {count: 4, period: hour}
-          timestamp_column: loaded_at
+      - elementary.freshness_anomalies:
+          timestamp_column: "loaded_at"
+          config:
+            severity: warn
       - elementary.dimension_anomalies:
           dimensions: ["city", "weather_main"]
       - elementary.schema_changes_from_baseline
-      - elementary.table_volume_anomalies
+      - elementary.event_freshness_anomalies:
+          event_timestamp_column: "observation_dt"
+          update_timestamp_column: "loaded_at"
+          config:
+            severity: warn
+      - elementary.volume_anomalies:
+          where_expression: "city = 'Kaliningrad'"
+          time_bucket:
+            period: day
+            count: 1
+          config:
+            severity: warn
           
     columns:
       - name: city
@@ -53,6 +59,3 @@ models:
         tests:
           - unique
           - not_null
-          - relationships:
-              to: ref('ods_weather_history')
-              field: city

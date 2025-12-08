@@ -15,8 +15,7 @@ print("Создаем тестовые данные о погоде...");
 
 const now = new Date();
 const cities = [
-    { name: "Kaliningrad", country: "RU", lat: 54.7104, lon: 20.4522 },
-    { name: "Moscow", country: "RU", lat: 55.7558, lon: 37.6173 }
+    { name: "Kaliningrad", country: "RU", lat: 54.7104, lon: 20.4522 }
 ];
 
 // Генерируем данные за последние 3 дня
