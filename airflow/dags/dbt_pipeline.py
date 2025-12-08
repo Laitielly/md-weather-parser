@@ -15,7 +15,7 @@ DBT_PROFILE = "weather_pg"
 
 with DAG(
     dag_id="dbt_weather_pipeline",
-    schedule_interval="30 */3 * * *",
+    schedule_interval=None,
     start_date=days_ago(1),
     catchup=False,
     default_args={

@@ -26,6 +26,21 @@ PG_USER = os.environ.get("POSTGRES_ANALYTICS_USER", "pguser")
 PG_PASSWORD = os.environ.get("POSTGRES_ANALYTICS_PASSWORD", "pgpass")
 PG_PORT = int(os.environ.get("POSTGRES_ANALYTICS_PORT", 5432))
 
+def create_raw_schema(**context):
+    """Create the raw_data schema if it doesn't exist"""
+    conn = _make_pg_conn()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("CREATE SCHEMA IF NOT EXISTS raw_data;")
+        log.info("Schema raw_data created or already exists")
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
+        log.info("Schema raw_data already exists")
+    finally:
+        cur.close()
+        conn.close()
+
 
 def _make_mongo_client():
     uri = f"mongodb://{MONGO_USER}:{MONGO_PASSWORD}@{MONGO_HOST}:{MONGO_PORT}/?authSource=admin"
@@ -135,6 +150,11 @@ with DAG(
     tags=["weather", "el", "raw"],
 ) as dag:
 
+    t_create_schema = PythonOperator(
+        task_id="create_raw_schema",
+        python_callable=create_raw_schema,
+    )
+
     t_extract_current = PythonOperator(
         task_id="extract_current_weather",
         python_callable=extract_current_weather,
@@ -162,5 +182,6 @@ with DAG(
         op_kwargs={"task_extract_id": "extract_forecasts", "table_name": "forecasts"},
     )
 
+    t_create_schema >> [t_extract_current, t_extract_forecasts]
     t_extract_current >> t_load_current
     t_extract_forecasts >> t_load_forecasts
