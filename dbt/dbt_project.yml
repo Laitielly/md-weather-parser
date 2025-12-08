@@ -2,59 +2,25 @@ name: 'weather_analytics'
 version: '1.0.0'
 config-version: 2
 
-profile: 'weather_analytics'
+profile: 'weather_pg'
 
 model-paths: ["models"]
-analysis-paths: ["analysis"]
+analysis-paths: ["analyses"]
 test-paths: ["tests"]
-seed-paths: ["data"]
+seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
-target-path: "target"
-clean-targets:
+target-path: "target"  
+clean-targets:         
   - "target"
   - "dbt_packages"
 
 models:
   weather_analytics:
-    materialized: table
-    stg:
-      materialized: view
-      +schema: stg
-      +tags: ['stg', 'bronze']
-    ods:
-      materialized: table
-      +schema: ods
-      +tags: ['ods', 'silver']
-    dwh:
-      materialized: table
-      +schema: dwh
-      +tags: ['dwh', 'gold']
-    dm:
-      materialized: table
-      +schema: dm
-      +tags: ['dm', 'mart']
-    elementary:
-      materialized: table
-      +schema: elementary
-      +tags: ['elementary']
-
-tests:
-  weather_analytics:
-    +severity: warn
-
-vars:
-  surrogate_key_treat_nulls_as_empty_strings: true
-  elementary_database: "{{ target.database }}"
-  elementary_schema: "elementary"
-  
-  edr:
-    config:
-      slack_notifications_enabled: false
-      self_hosted_slack_webhook: "{{ env_var('SLACK_WEBHOOK', '') }}"
-      
-seeds:
-  weather_analytics:
-    elementary:
-      +schema: elementary
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: analytics

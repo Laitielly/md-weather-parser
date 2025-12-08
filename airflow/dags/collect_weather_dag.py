@@ -51,8 +51,8 @@ with DAG(
     )
 
     t_trigger_elt = TriggerDagRunOperator(
-        task_id="trigger_weather_elt",
-        trigger_dag_id="weather_elt",
+        task_id="trigger_weather_el",
+        trigger_dag_id="weather_el",
         reset_dag_run=True,
         wait_for_completion=False,
         poke_interval=30,

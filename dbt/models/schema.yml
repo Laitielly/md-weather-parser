@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: ods_weather_history
+    description: "Таблица с историей наблюдений погоды без дублей"
+    config:
+      tags: ["ods", "critical"]
+    
+    tests:
+      - elementary.schema_changes_from_baseline
+      - elementary.freshness_anomalies:
+          timestamp_column: "loaded_at"
+          
+    columns:
+      - name: city
+        description: "Название города"
+        tests:
+          - not_null
+      - name: temp
+        description: "Температура в градусах Цельсия"
+        tests:
+          - is_realistic_temperature
+      - name: observation_dt
+        tests:
+          - not_null
+      - name: loaded_at
+        description: "Время загрузки записи в ODS"
+        tests:
+          - not_null
+          
+  - name: dm_daily_stats
+    description: "Ежедневная статистика по городам"
+    columns:
+      - name: stat_date
+        tests:
+          - unique
+          - not_null
