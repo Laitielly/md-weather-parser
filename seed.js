@@ -20,7 +20,7 @@ const cities = [
 
 // Генерируем данные за последние 3 дня
 for (let day = 0; day < 5; day++) {
-    for (let hour = 0; hour < 24; hour += 3) { // Каждые 3 часа
+    for (let hour = 0; hour < 24; hour += 1) { // Каждые 3 часа
         const time = new Date(now);
         time.setDate(time.getDate() - day);
         time.setHours(time.getHours() - hour);
