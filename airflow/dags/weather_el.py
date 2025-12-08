@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+import json
 from datetime import datetime, timedelta
 import logging
 from typing import List, Dict, Any
@@ -97,88 +98,26 @@ def load_raw_data(task_extract_id: str, table_name: str, **context):
         cur.execute("CREATE SCHEMA IF NOT EXISTS raw_data;")
 
         if table_name == "current_weather":
-            cur.execute(
-                """
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS raw_data.current_weather (
                     id TEXT PRIMARY KEY,
-                    city TEXT, country TEXT, dt BIGINT, temp NUMERIC,
-                    feels_like NUMERIC, pressure INTEGER, humidity INTEGER,
-                    wind_speed NUMERIC, wind_deg INTEGER, weather_main TEXT,
-                    weather_description TEXT, clouds INTEGER, visibility INTEGER,
-                    collected_ts TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW()
+                    doc JSONB NOT NULL,
+                    loaded_at TIMESTAMPTZ DEFAULT NOW()
                 );
-            """
-            )
-            vals = [
-                (
-                    r["_id"],
-                    r.get("city"),
-                    r.get("country"),
-                    r.get("dt"),
-                    r.get("temp"),
-                    r.get("feels_like"),
-                    r.get("pressure"),
-                    r.get("humidity"),
-                    r.get("wind_speed"),
-                    r.get("wind_deg"),
-                    r.get("weather_main"),
-                    r.get("weather_description"),
-                    r.get("clouds"),
-                    r.get("visibility"),
-                    r.get("collected_ts"),
-                )
-                for r in rows
-            ]
-
-            sql = """
-                INSERT INTO raw_data.current_weather 
-                (id, city, country, dt, temp, feels_like, pressure, humidity, 
-                 wind_speed, wind_deg, weather_main, weather_description, 
-                 clouds, visibility, collected_ts)
-                VALUES %s ON CONFLICT (id) DO NOTHING
-            """
+            """)
+            vals = [(str(r["_id"]), json.dumps(r, default=str)) for r in rows]
+            sql = "INSERT INTO raw_data.current_weather (id, doc) VALUES %s ON CONFLICT (id) DO NOTHING"
 
         elif table_name == "forecasts":
-            cur.execute(
-                """
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS raw_data.forecasts (
                     id TEXT PRIMARY KEY,
-                    city TEXT, country TEXT, forecast_dt BIGINT, collection_dt TIMESTAMPTZ,
-                    temp NUMERIC, feels_like NUMERIC, pressure INTEGER, humidity INTEGER,
-                    wind_speed NUMERIC, wind_deg INTEGER, weather_main TEXT,
-                    weather_description TEXT, clouds INTEGER, pop NUMERIC,
-                    created_at TIMESTAMPTZ DEFAULT NOW()
+                    doc JSONB NOT NULL,
+                    loaded_at TIMESTAMPTZ DEFAULT NOW()
                 );
-            """
-            )
-            vals = [
-                (
-                    r["_id"],
-                    r.get("city"),
-                    r.get("country"),
-                    r.get("forecast_dt"),
-                    r.get("collection_dt"),
-                    r.get("temp"),
-                    r.get("feels_like"),
-                    r.get("pressure"),
-                    r.get("humidity"),
-                    r.get("wind_speed"),
-                    r.get("wind_deg"),
-                    r.get("weather_main"),
-                    r.get("weather_description"),
-                    r.get("clouds"),
-                    r.get("pop"),
-                )
-                for r in rows
-            ]
-
-            sql = """
-                INSERT INTO raw_data.forecasts 
-                (id, city, country, forecast_dt, collection_dt, temp, feels_like, 
-                 pressure, humidity, wind_speed, wind_deg, weather_main, 
-                 weather_description, clouds, pop)
-                VALUES %s ON CONFLICT (id) DO NOTHING
-            """
+            """)
+            vals = [(str(r["_id"]), json.dumps(r, default=str)) for r in rows]
+            sql = "INSERT INTO raw_data.forecasts (id, doc) VALUES %s ON CONFLICT (id) DO NOTHING"
 
         psycopg2.extras.execute_values(cur, sql, vals, page_size=100)
         log.info(f"Loaded {cur.rowcount} rows into raw_data.{table_name}")

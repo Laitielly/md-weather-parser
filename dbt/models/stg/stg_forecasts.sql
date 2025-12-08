@@ -6,8 +6,22 @@ with source as (
 
 select
     id as raw_id,
-    to_timestamp(forecast_dt) as forecast_dt,
-    collection_dt,
-    cast(temp as numeric) as forecast_temp,
-    weather_main as forecast_weather
+    (doc->>'city')::text as city,
+    (doc->>'country')::text as country,
+
+    case
+      when (doc->>'forecast_dt') ~ '^[0-9]+$' then to_timestamp((doc->>'forecast_dt')::bigint)
+      else (doc->>'forecast_dt')::timestamptz
+    end as forecast_timestamp,
+
+    case
+      when (doc->>'collection_dt') ~ '^[0-9]+$' then to_timestamp((doc->>'collection_dt')::bigint)
+      else (doc->>'collection_dt')::timestamptz
+    end as mongo_collection_ts,
+
+    (doc->>'temp')::numeric as temp,
+    (doc->>'humidity')::int as humidity,
+    (doc->'weather'->0->>'main')::text as forecast_weather_main,
+
+    loaded_at as pg_loaded_at
 from source
