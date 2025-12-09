@@ -165,13 +165,13 @@ with DAG(
     t_extract_current = PythonOperator(
         task_id="extract_current_weather",
         python_callable=extract_current_weather,
-        op_kwargs={"window_hours": None},
+        op_kwargs={"window_hours": 3},
     )
 
     t_extract_forecasts = PythonOperator(
         task_id="extract_forecasts",
         python_callable=extract_forecasts,
-        op_kwargs={"window_hours": None},
+        op_kwargs={"window_hours": 3},
     )
 
     t_load_current = PythonOperator(
