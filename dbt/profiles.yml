@@ -1,0 +1,25 @@
+weather_pg:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      threads: 4
+      host: postgres_analytics
+      port: 5432
+      user: "{{ env_var('POSTGRES_ANALYTICS_USER', 'pguser') }}" 
+      password: "{{ env_var('POSTGRES_ANALYTICS_PASSWORD', 'pgpass') }}"
+      dbname: analytics
+      schema: public
+
+elementary:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      threads: 4
+      host: postgres_analytics
+      port: 5432
+      user: "{{ env_var('POSTGRES_ANALYTICS_USER', 'pguser') }}"
+      password: "{{ env_var('POSTGRES_ANALYTICS_PASSWORD', 'pgpass') }}"
+      dbname: analytics
+      schema: public

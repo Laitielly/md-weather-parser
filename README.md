@@ -111,6 +111,7 @@ docker-compose up -d --build
 | :---------------------------- | :---- | :--------------------------------------- | :---------------------- |
 | Airflow Webserver             | 8080  | [ссылка](http://89.169.170.56:8080/home) | admin / admin           |
 | FastAPI App                   | 8081  | [ссылка](http://89.169.170.56:8081/docs) | N/A                     |
+| Elementary Dashboard | 8081 | [ссылка](http://89.169.170.56:8081/elementary/report)     | N/A |
 | Postgres Analytics | 5433  | [ссылка](http://89.169.170.56:5433/docs) | readonly / readonlypass |
 | Mongo | 27017 | [ссылка](http://89.169.170.56:27017)     | readonly / readonlypass |
 

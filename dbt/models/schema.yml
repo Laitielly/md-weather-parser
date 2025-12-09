@@ -1,0 +1,196 @@
+version: 2
+
+models:
+  - name: ods_weather_history
+    description: "Таблица с историей наблюдений погоды без дублей"
+    config:
+      tags: ["ods", "critical"]
+    
+    tests:
+      - elementary.all_columns_anomalies
+      - elementary.freshness_anomalies:
+          timestamp_column: "loaded_at"
+          config:
+            severity: warn
+      - elementary.dimension_anomalies:
+          dimensions: ["city", "weather_main"]
+      - elementary.schema_changes_from_baseline
+      - elementary.event_freshness_anomalies:
+          event_timestamp_column: "observation_dt"
+          update_timestamp_column: "loaded_at"
+          config:
+            severity: warn
+      - elementary.volume_anomalies:
+          where_expression: "city = 'Kaliningrad'"
+          time_bucket:
+            period: day
+            count: 1
+          config:
+            severity: warn
+          
+    columns:
+      - name: city
+        description: "Название города"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Kaliningrad']
+      - name: temp
+        description: "Температура в градусах Цельсия"
+        tests:
+          - is_realistic_temperature
+          - elementary.column_anomalies
+      - name: observation_dt
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_current_weather')
+              field: observation_dt
+      - name: loaded_at
+        description: "Время загрузки записи в ODS"
+        tests:
+          - not_null
+      - name: humidity
+        tests:
+          - valid_humidity_range
+
+  - name: ods_forecast_history
+    description: "Таблица с историей прогнозов погоды"
+    config:
+      tags: ["ods", "forecast"]
+    
+    tests:
+      - elementary.freshness_anomalies:
+          timestamp_column: "loaded_at"
+          config:
+            severity: warn
+          
+    columns:
+      - name: city
+        description: "Название города"
+        tests:
+          - not_null
+      - name: forecast_timestamp
+        description: "Время прогноза"
+        tests:
+          - not_null
+      - name: temp
+        description: "Прогнозируемая температура"
+        tests:
+          - is_realistic_temperature
+      - name: humidity
+        tests:
+          - valid_humidity_range
+      - name: forecast_weather_main
+        description: "Прогнозируемые погодные условия"
+
+  - name: dm_daily_stats
+    description: "Ежедневная статистика по городам"
+    config:
+      tags: ["dm", "aggregated"]
+    
+    columns:
+      - name: stat_date
+        description: "Дата статистики"
+        tests:
+          - unique
+          - not_null
+      - name: city
+        description: "Город"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('ods_weather_history')
+              field: city
+      - name: avg_temp
+        description: "Средняя температура"
+        tests:
+          - not_null
+      - name: min_temp
+        description: "Минимальная температура"
+        tests:
+          - not_null
+      - name: max_temp
+        description: "Максимальная температура"
+        tests:
+          - not_null
+      - name: records_count
+        description: "Количество записей"
+        tests:
+          - not_null
+
+  - name: dm_forecast_accuracy
+    description: "Точность прогнозов погоды"
+    config:
+      tags: ["dm", "accuracy"]
+    
+    columns:
+      - name: accuracy_date
+        description: "Дата для расчета точности"
+        tests:
+          - not_null
+      - name: city
+        description: "Город"
+        tests:
+          - not_null
+      - name: avg_temp_error
+        description: "Ошибка средней температуры"
+      - name: avg_temp_error_percent
+        description: "Процент ошибки температуры"
+      - name: forecast_count
+        description: "Количество прогнозов"
+        tests:
+          - not_null
+
+  - name: stg_current_weather
+    description: "Staging таблица с текущей погодой"
+    config:
+      tags: ["stg", "bronze"]
+    
+    columns:
+      - name: city
+        description: "Город"
+        tests:
+          - not_null
+      - name: observation_dt
+        description: "Время наблюдения"
+        tests:
+          - not_null
+      - name: temp
+        description: "Температура"
+        tests:
+          - is_realistic_temperature
+      - name: humidity
+        description: "Влажность"
+        tests:
+          - valid_humidity_range
+      - name: weather_main
+        description: "Основные погодные условия"
+        tests:
+          - accepted_values:
+              values: ['Clear', 'Clouds', 'Rain', 'Snow', 'Mist', 'Fog', 'Drizzle', 'Thunderstorm']
+
+  - name: stg_forecasts
+    description: "Staging таблица с прогнозами погоды"
+    config:
+      tags: ["stg", "bronze"]
+    
+    columns:
+      - name: city
+        description: "Город"
+        tests:
+          - not_null
+      - name: forecast_timestamp
+        description: "Время прогноза"
+        tests:
+          - not_null
+      - name: temp
+        description: "Прогнозируемая температура"
+        tests:
+          - is_realistic_temperature
+      - name: humidity
+        description: "Прогнозируемая влажность"
+        tests:
+          - valid_humidity_range
+      - name: forecast_weather_main
+        description: "Прогнозируемые погодные условия"

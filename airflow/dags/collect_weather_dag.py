@@ -51,11 +51,19 @@ with DAG(
     )
 
     t_trigger_elt = TriggerDagRunOperator(
-        task_id="trigger_weather_elt",
-        trigger_dag_id="weather_elt",
+        task_id="trigger_weather_el",
+        trigger_dag_id="weather_el",
         reset_dag_run=True,
         wait_for_completion=False,
         poke_interval=30,
     )
 
-    t_collect_weather >> t_trigger_elt
+    t_trigger_dbt = TriggerDagRunOperator(
+        task_id="trigger_dbt_pipeline",
+        trigger_dag_id="dbt_weather_pipeline",
+        reset_dag_run=True,
+        wait_for_completion=False,
+        poke_interval=60,
+    )
+
+    t_collect_weather >> t_trigger_elt >> t_trigger_dbt

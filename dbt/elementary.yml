@@ -1,0 +1,28 @@
+name: 'weather_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'weather_pg'
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+models:
+  weather_analytics:
+    elementary:
+      +schema: elementary
+      +enabled: true
+
+    staging:
+      +materialized: view
+      +schema: stg
+    ods:
+      +materialized: incremental
+      +schema: ods
+    marts:
+      +materialized: incremental
+      +schema: dm
+
+on-run-end:
+  - "{{ elementary.on_run_end() }}"

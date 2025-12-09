@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: weather_raw
+    schema: raw_data
+    tables:
+      - name: current_weather
+      - name: forecasts

@@ -74,6 +74,9 @@ services:
     environment:
       MONGO_HOST: mongodb
       MONGO_PORT: 27017
+    volumes:
+      - ./app:/app
+      - ./dbt:/opt/airflow/dbt
 
   airflow-init:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
@@ -118,6 +121,7 @@ services:
     restart: "no"
     volumes:
       - ./airflow/dags:/opt/airflow/dags
+      - ./dbt:/opt/airflow/dbt
 
   airflow-webserver:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
@@ -127,6 +131,7 @@ services:
     volumes:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
+      - ./dbt:/opt/airflow/dbt
     ports:
       - "8080:8080"
     command: webserver
@@ -151,6 +156,7 @@ services:
     volumes:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
+      - ./dbt:/opt/airflow/dbt
     command: scheduler
     env_file:
       - .env
@@ -167,6 +173,7 @@ services:
     volumes:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
+      - ./dbt:/opt/airflow/dbt
     command: celery worker
     env_file:
       - .env
@@ -183,3 +190,4 @@ volumes:
   mongo_data:
   airflow_logs:
   airflow_plugins:
+  
