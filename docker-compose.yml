@@ -68,6 +68,7 @@ services:
       - "8081:8081"
     volumes:
       - ./app:/app
+      - ./dbt:/dbt   
     restart: unless-stopped
     depends_on:
       - mongodb

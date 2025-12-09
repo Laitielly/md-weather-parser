@@ -9,6 +9,9 @@ dbt_packages/
 target/
 logs/
 profiles.yml
+package-lock.yml
+.user.yml
+dbt/edr_target/elementary_output.json
 
 # Distribution / packaging
 .Python

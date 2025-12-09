@@ -1,15 +1,15 @@
+// seed.js
 print("=== Начинаем генерацию тестовых данных ===");
 
-// Проверяем, существует ли база данных
-const dbList = db.getMongo().getDBNames();
-if (!dbList.includes("weather_db")) {
-    print("Создаем базу данных weather_db...");
-}
+// Переключаемся на целевую базу данных (работает в скриптах)
+db = db.getSiblingDB("weather_db");
+print("Используем базу:", db.getName());
 
 // Очищаем коллекции
 print("Очищаем коллекции...");
 db.current_weather.deleteMany({});
 db.forecasts.deleteMany({});
+db.accuracy_metrics.deleteMany({});
 
 print("Создаем тестовые данные о погоде...");
 
@@ -18,19 +18,21 @@ const cities = [
     { name: "Kaliningrad", country: "RU", lat: 54.7104, lon: 20.4522 }
 ];
 
+let insertsCount = 0;
+
 // Генерируем данные за последние 8 дней
 for (let day = 0; day < 8; day++) {
     for (let hour = 0; hour < 24; hour += 1) { // Каждый час
         const time = new Date(now);
         time.setDate(time.getDate() - day);
         time.setHours(time.getHours() - hour);
-        
+
         for (const city of cities) {
             // Текущая погода
             const temp = 15 + Math.sin(day + hour/24) * 10 + (Math.random() * 5 - 2.5);
             const humidity = 60 + Math.random() * 30;
             const pressure = 1013 + Math.random() * 20 - 10;
-            
+
             db.current_weather.insertOne({
                 _id: `cw_${city.name.toLowerCase()}_${time.getTime()}`,
                 city: city.name,
@@ -49,15 +51,16 @@ for (let day = 0; day < 8; day++) {
                 collected_ts: time,
                 created_at: new Date()
             });
-            
-            // Прогнозы на ближайшие 48 часов
+            insertsCount++;
+
+            // Прогнозы на ближайшие 48 часов (с шагом 3 часа)
             for (let forecastHour = 3; forecastHour <= 48; forecastHour += 3) {
                 const forecastTime = new Date(time);
                 forecastTime.setHours(forecastTime.getHours() + forecastHour);
-                
-                const forecastTemp = temp + (Math.random() * 4 - 2); // ±2 градуса от текущего
+
+                const forecastTemp = temp + (Math.random() * 4 - 2); // ±2 градуса
                 const forecastError = Math.random() * 3 - 1.5; // Ошибка прогноза
-                
+
                 db.forecasts.insertOne({
                     _id: `fc_${city.name.toLowerCase()}_${time.getTime()}_${forecastHour}`,
                     city: city.name,
@@ -73,9 +76,10 @@ for (let day = 0; day < 8; day++) {
                     weather_main: forecastTemp > 20 ? "Clear" : forecastTemp > 10 ? "Clouds" : "Rain",
                     weather_description: forecastTemp > 20 ? "ясно" : forecastTemp > 10 ? "облачно" : "легкий дождь",
                     clouds: Math.floor(Math.random() * 100),
-                    pop: parseFloat(Math.min(0.8, Math.random() * 0.5).toFixed(2)), // Вероятность осадков
+                    pop: parseFloat(Math.min(0.8, Math.random() * 0.5).toFixed(2)),
                     created_at: new Date()
                 });
+                insertsCount++;
             }
         }
     }
@@ -83,25 +87,25 @@ for (let day = 0; day < 8; day++) {
 
 // Создаем данные для проверки точности
 print("Создаем данные для проверки точности прогнозов...");
-const accuracyData = [];
+const accuracyDocs = [];
 
 for (let i = 0; i < 100; i++) {
     const forecastTime = new Date(now);
     forecastTime.setHours(forecastTime.getHours() - Math.floor(Math.random() * 48));
-    
+
     const collectionTime = new Date(forecastTime);
     collectionTime.setHours(collectionTime.getHours() - Math.floor(Math.random() * 24));
-    
+
     const verificationTime = new Date(forecastTime);
     verificationTime.setHours(verificationTime.getHours() + Math.floor(Math.random() * 3));
-    
+
     const tempActual = 15 + Math.random() * 15;
     const tempError = Math.random() * 4 - 2; // Ошибка от -2 до +2 градусов
-    
-    accuracyData.push({
-        forecast_dt: forecastTime,
-        collection_dt: collectionTime,
-        verification_dt: verificationTime,
+
+    accuracyDocs.push({
+        forecast_dt: Math.floor(forecastTime.getTime() / 1000),
+        collection_dt: Math.floor(collectionTime.getTime() / 1000),
+        verification_dt: Math.floor(verificationTime.getTime() / 1000),
         temp_actual: parseFloat(tempActual.toFixed(1)),
         temp_forecast: parseFloat((tempActual + tempError).toFixed(1)),
         temp_error: parseFloat(tempError.toFixed(1)),
@@ -112,17 +116,23 @@ for (let i = 0; i < 100; i++) {
         pressure_actual: Math.floor(1000 + Math.random() * 30),
         pressure_forecast: Math.floor(1000 + Math.random() * 30),
         pressure_error: Math.floor(Math.random() * 10 - 5),
-        weather_match: Math.random() > 0.3, // 70% совпадений
+        weather_match: Math.random() > 0.3,
         created_at: new Date()
     });
+}
+
+// Вставляем метрики точности пачкой
+if (accuracyDocs.length > 0) {
+    db.accuracy_metrics.insertMany(accuracyDocs);
 }
 
 // Статистика
 const currentCount = db.current_weather.countDocuments();
 const forecastCount = db.forecasts.countDocuments();
-const accuracyCount = db.accuracy_metrics ? db.accuracy_metrics.countDocuments() : 0;
+const accuracyCount = db.accuracy_metrics.countDocuments();
 
 print("=== Генерация завершена ===");
+print(`Вставлено прогнозов/тек.погоды (прибл.): ${insertsCount}`);
 print(`Текущая погода: ${currentCount} записей`);
 print(`Прогнозы: ${forecastCount} записей`);
 print(`Метрики точности: ${accuracyCount} записей`);

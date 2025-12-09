@@ -11,12 +11,41 @@ permissions:
   id-token: write
 
 jobs:
-  build:
-    name: Build & push images
+  detect_changes:
+    name: Detect changed paths
     runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      airflow: ${{ steps.filter.outputs.airflow }}
+      dbt: ${{ steps.filter.outputs.dbt }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            app:
+              - 'app/**'
+            airflow:
+              - 'airflow/**'
+            dbt:
+              - 'dbt/**'
+
+  build_app:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    needs: detect_changes
+    if: needs.detect_changes.outputs.app == 'true' || needs.detect_changes.outputs.airflow == 'true' || needs.detect_changes.outputs.dbt == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -53,7 +82,7 @@ jobs:
 
   deploy:
     name: Deploy to production
-    needs: build
+    needs: [build_app, detect_changes]
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -96,6 +125,16 @@ jobs:
             chmod 600 /srv/myproject/.env
             ls -la /srv/myproject/.env
 
+      - name: Upload dbt project to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          source: "dbt"
+          target: "/srv/myproject/" 
+
       - name: Cleanup, Pull images and bring up compose
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -105,8 +144,6 @@ jobs:
           port: 22
           script: |
             cd /srv/myproject
-            docker-compose -f docker-compose.prod.yml down --rmi local || true
             docker-compose -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
-            docker image prune -f
+            docker-compose -f docker-compose.prod.yml up -d --remove-orphans
             docker-compose -f docker-compose.prod.yml ps

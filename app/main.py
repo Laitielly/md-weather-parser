@@ -7,13 +7,15 @@ import time as _time
 from typing import List, Dict, Any
 import requests
 from fastapi import FastAPI, Query, HTTPException
+from fastapi.responses import HTMLResponse
 from pymongo import MongoClient, errors
-from pydantic import BaseModel
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv()
 
 app = FastAPI(title="Weather Data Collector API")
+ELEMENTARY_REPORT = Path("/dbt/edr_target/elementary_report.html")
 
 # Конфигурация OpenWeatherMap
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "your_api_key_here")
@@ -26,41 +28,6 @@ client = None
 db = None
 current_collection = None
 forecast_collection = None
-
-
-# Pydantic модели
-class CurrentWeather(BaseModel):
-    city: str
-    country: str
-    dt: int  # Unix timestamp
-    temp: float
-    feels_like: float
-    pressure: int
-    humidity: int
-    wind_speed: float
-    wind_deg: int
-    weather_main: str
-    weather_description: str
-    clouds: int
-    visibility: int
-    collected_ts: datetime
-
-
-class Forecast(BaseModel):
-    city: str
-    country: str
-    forecast_dt: int  # Время прогноза (Unix timestamp)
-    collection_dt: datetime  # Время сбора прогноза
-    temp: float
-    feels_like: float
-    pressure: int
-    humidity: int
-    wind_speed: float
-    wind_deg: int
-    weather_main: str
-    weather_description: str
-    clouds: int
-    pop: float  # Вероятность осадков (0-1)
 
 
 def make_mongo_uri():
@@ -267,6 +234,17 @@ def collect_weather_data():
 def startup():
     init_mongo_client(retries=20, delay=2)
     Thread(target=collect_weather_data, daemon=True).start()
+
+
+@app.get("/elementary/report", response_class=HTMLResponse)
+def get_elementary_report():
+    if not ELEMENTARY_REPORT.exists():
+        raise HTTPException(status_code=404, detail="Elementary report not found")
+
+    return HTMLResponse(
+        content=ELEMENTARY_REPORT.read_text(encoding="utf-8"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
 
 
 @app.post("/collect/current")

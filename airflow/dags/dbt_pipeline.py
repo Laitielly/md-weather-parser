@@ -58,4 +58,11 @@ with DAG(
         """,
     )
 
-    t_dbt_deps >> t_dbt_seed >> t_dbt_run >> t_dbt_test >> t_dbt_docs >> t_dbt_edr_report
+    (
+        t_dbt_deps
+        >> t_dbt_seed
+        >> t_dbt_run
+        >> t_dbt_test
+        >> t_dbt_docs
+        >> t_dbt_edr_report
+    )

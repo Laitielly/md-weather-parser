@@ -3,7 +3,7 @@ import os
 import json
 from datetime import datetime, timedelta
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -26,11 +26,12 @@ PG_USER = os.environ.get("POSTGRES_ANALYTICS_USER", "pguser")
 PG_PASSWORD = os.environ.get("POSTGRES_ANALYTICS_PASSWORD", "pgpass")
 PG_PORT = int(os.environ.get("POSTGRES_ANALYTICS_PORT", 5432))
 
+
 def create_raw_schema(**context):
     """Create the raw_data schema if it doesn't exist"""
     conn = _make_pg_conn()
     cur = conn.cursor()
-    
+
     try:
         cur.execute("CREATE SCHEMA IF NOT EXISTS raw_data;")
         log.info("Schema raw_data created or already exists")
@@ -111,26 +112,32 @@ def load_raw_data(task_extract_id: str, table_name: str, **context):
 
     try:
         cur.execute("CREATE SCHEMA IF NOT EXISTS raw_data;")
+        sql: Optional[str] = None
+        vals: Optional[List] = None
 
         if table_name == "current_weather":
-            cur.execute("""
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS raw_data.current_weather (
                     id TEXT PRIMARY KEY,
                     doc JSONB NOT NULL,
                     loaded_at TIMESTAMPTZ DEFAULT NOW()
                 );
-            """)
+            """
+            )
             vals = [(str(r["_id"]), json.dumps(r, default=str)) for r in rows]
             sql = "INSERT INTO raw_data.current_weather (id, doc) VALUES %s ON CONFLICT (id) DO NOTHING"
 
         elif table_name == "forecasts":
-            cur.execute("""
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS raw_data.forecasts (
                     id TEXT PRIMARY KEY,
                     doc JSONB NOT NULL,
                     loaded_at TIMESTAMPTZ DEFAULT NOW()
                 );
-            """)
+            """
+            )
             vals = [(str(r["_id"]), json.dumps(r, default=str)) for r in rows]
             sql = "INSERT INTO raw_data.forecasts (id, doc) VALUES %s ON CONFLICT (id) DO NOTHING"
 
