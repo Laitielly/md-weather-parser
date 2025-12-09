@@ -1,5 +1,5 @@
 x-airflow-common: &airflow-common-env
-  AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+  AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
   AIRFLOW__CORE__EXECUTOR: CeleryExecutor
   AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
@@ -131,6 +131,7 @@ services:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
       - ./dbt:/opt/airflow/dbt
+      - ./airflow/dags:/opt/airflow/dags
     ports:
       - "8080:8080"
     command: webserver
@@ -156,6 +157,7 @@ services:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
       - ./dbt:/opt/airflow/dbt
+      - ./airflow/dags:/opt/airflow/dags
     command: scheduler
     env_file:
       - .env
@@ -173,6 +175,7 @@ services:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
       - ./dbt:/opt/airflow/dbt
+      - ./airflow/dags:/opt/airflow/dags
     command: celery worker
     env_file:
       - .env
@@ -185,7 +188,10 @@ services:
 
 volumes:
   postgres_data:
+    external: true
   postgres_analytics_data:
+    external: true
   mongo_data:
+    external: true
   airflow_logs:
   airflow_plugins:

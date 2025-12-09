@@ -47,7 +47,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./airflow
-          file: ./airflow/Dockerfile
+          file: ./airflow/dockerfile
           push: true
           tags: |
             ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_airflow_elt:latest
@@ -115,7 +115,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
-          source: "airflow/dags"
+          source: "airflow/dags/*"
           target: "/srv/myproject/airflow/dags"
 
       - name: Fix permissions for airflow dags
