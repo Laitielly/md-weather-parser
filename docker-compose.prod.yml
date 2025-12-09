@@ -188,10 +188,7 @@ services:
 
 volumes:
   postgres_data:
-    external: true
   postgres_analytics_data:
-    external: true
   mongo_data:
-    external: true
   airflow_logs:
   airflow_plugins:
