@@ -1,24 +1,20 @@
 FROM apache/airflow:2.7.3-python3.11
 
-USER airflow
+# устанавливаем как root, чтобы пакеты ставились в системный site-packages
+USER root
 
-# Установка Python зависимостей для Airflow
 COPY requirements.txt /requirements.txt
-RUN pip install --no-cache-dir -r /requirements.txt
+RUN pip install --no-cache-dir -r /requirements.txt && \
+    pip install --no-cache-dir \
+      dbt-core==1.7.16 \
+      dbt-postgres==1.7.16 \
+      elementary-data==0.14.1
 
-# Установка DBT и его зависимостей (совместимые версии)
-RUN pip install --no-cache-dir \
-    dbt-core==1.7.16 \
-    dbt-postgres==1.7.16 \
-    elementary-data==0.14.1
-
-# Копируем DAGs
+# Копируем DAGs (если держишь их в образе)
 COPY dags/ /opt/airflow/dags/
 
-# Создаем директорию для DBT (она будет монтирована через volume)
-RUN mkdir -p /opt/airflow/dbt
+# Создаем директорию для DBT (при желании монтируешь volume)
+RUN mkdir -p /opt/airflow/dbt && chown -R airflow:root /opt/airflow
 
-# Настраиваем права
-USER root
-RUN chown -R airflow:root /opt/airflow
+# Переходим на небезопасного пользователя airflow для запуска
 USER airflow
