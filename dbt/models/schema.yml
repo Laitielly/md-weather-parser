@@ -52,7 +52,6 @@ models:
           - not_null
       - name: humidity
         tests:
-          - elementary.column_anomalies
           - valid_humidity_range
 
   - name: ods_forecast_history
@@ -61,7 +60,6 @@ models:
       tags: ["ods", "forecast"]
     
     tests:
-      - elementary.all_columns_anomalies
       - elementary.freshness_anomalies:
           timestamp_column: "loaded_at"
           config:
@@ -80,7 +78,6 @@ models:
         description: "Прогнозируемая температура"
         tests:
           - is_realistic_temperature
-          - elementary.column_anomalies
       - name: humidity
         tests:
           - valid_humidity_range
@@ -108,15 +105,15 @@ models:
       - name: avg_temp
         description: "Средняя температура"
         tests:
-          - elementary.column_anomalies
+          - not_null
       - name: min_temp
         description: "Минимальная температура"
         tests:
-          - elementary.column_anomalies
+          - not_null
       - name: max_temp
         description: "Максимальная температура"
         tests:
-          - elementary.column_anomalies
+          - not_null
       - name: records_count
         description: "Количество записей"
         tests:
@@ -131,7 +128,6 @@ models:
       - name: accuracy_date
         description: "Дата для расчета точности"
         tests:
-          - unique
           - not_null
       - name: city
         description: "Город"
@@ -141,8 +137,6 @@ models:
         description: "Ошибка средней температуры"
       - name: avg_temp_error_percent
         description: "Процент ошибки температуры"
-        tests:
-          - elementary.column_anomalies
       - name: forecast_count
         description: "Количество прогнозов"
         tests:

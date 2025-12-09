@@ -50,4 +50,12 @@ with DAG(
         bash_command=f"cd {DBT_PROJECT_DIR} && dbt docs generate --profiles-dir .",
     )
 
-    t_dbt_deps >> t_dbt_seed >> t_dbt_run >> t_dbt_test >> t_dbt_docs
+    t_dbt_edr_report = BashOperator(
+        task_id="dbt_edr_report",
+        bash_command=f"""
+        cd {DBT_PROJECT_DIR} && \
+        edr report --profiles-dir .
+        """,
+    )
+
+    t_dbt_deps >> t_dbt_seed >> t_dbt_run >> t_dbt_test >> t_dbt_docs >> t_dbt_edr_report

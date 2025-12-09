@@ -18,9 +18,9 @@ const cities = [
     { name: "Kaliningrad", country: "RU", lat: 54.7104, lon: 20.4522 }
 ];
 
-// Генерируем данные за последние 3 дня
-for (let day = 0; day < 5; day++) {
-    for (let hour = 0; hour < 24; hour += 1) { // Каждые 3 часа
+// Генерируем данные за последние 8 дней
+for (let day = 0; day < 8; day++) {
+    for (let hour = 0; hour < 24; hour += 1) { // Каждый час
         const time = new Date(now);
         time.setDate(time.getDate() - day);
         time.setHours(time.getHours() - hour);
