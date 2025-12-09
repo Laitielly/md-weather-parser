@@ -75,7 +75,6 @@ services:
       MONGO_HOST: mongodb
       MONGO_PORT: 27017
     volumes:
-      - ./app:/app
       - ./dbt:/opt/airflow/dbt
 
   airflow-init:
@@ -190,4 +189,3 @@ volumes:
   mongo_data:
   airflow_logs:
   airflow_plugins:
-  
