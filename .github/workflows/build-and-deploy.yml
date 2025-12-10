@@ -2,23 +2,8 @@ name: Build and deploy images
 
 on:
   workflow_dispatch:
-    inputs:
-      skip_tests:
-        description: 'Skip tests before deploy'
-        required: false
-        default: false
-        type: boolean
   push:
     branches: ["main"]
-
-env:
-  PROJECT_NAME: weather_parser
-  DEPLOY_PATH: /srv/weather_parser
-  AIRFLOW_UID: 50000
-  DOCKER_COMPOSE_FILE: docker-compose.prod.yml
-  AIRFLOW_SERVICE: airflow-webserver
-  REGISTRY: ghcr.io
-  DBT_CONTAINER_PATH: /opt/airflow/dbt
 
 permissions:
   contents: read
@@ -26,160 +11,145 @@ permissions:
   id-token: write
 
 jobs:
-  validate:
+  build_app:
+    name: Build & push images
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - id: version
-        run: |
-          echo "version=$(date +'%Y%m%d')-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
-      - name: Validate docker-compose file
-        run: |
-          test -f "${{ env.DOCKER_COMPOSE_FILE }}" || { echo "❌ docker-compose file missing"; exit 1; }
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Check required secrets
-        run: |
-          set -e
-          test -n "${{ secrets.GHCR_OWNER }}" || { echo "Missing GHCR_OWNER"; exit 1; }
-          test -n "${{ secrets.GHCR_TOKEN }}" || { echo "Missing GHCR_TOKEN"; exit 1; }
-          test -n "${{ secrets.SERVER_HOST }}" || { echo "Missing SERVER_HOST"; exit 1; }
-          test -n "${{ secrets.SERVER_USER }}" || { echo "Missing SERVER_USER"; exit 1; }
-          echo "✅ Secrets OK"
-
-  build:
-    needs: validate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
         with:
-          registry: "${{ env.REGISTRY }}"
-          username: "${{ secrets.GHCR_OWNER }}"
-          password: "${{ secrets.GHCR_TOKEN }}"
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_OWNER }}
+          password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build & push app
+      - name: Build & push app image
         uses: docker/build-push-action@v5
         with:
-          context: "./app"
+          context: ./app
+          file: ./app/Dockerfile
           push: true
           tags: |
-            "${{ env.REGISTRY }}/${{ secrets.GHCR_OWNER }}/${{ env.PROJECT_NAME }}_app:latest"
-            "${{ env.REGISTRY }}/${{ secrets.GHCR_OWNER }}/${{ env.PROJECT_NAME }}_app:${{ needs.validate.outputs.version }}"
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_app:latest
+            ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_app:${{ github.sha }}
 
-      - name: Build & push airflow
+      - name: Build & push airflow image
         uses: docker/build-push-action@v5
         with:
-          context: "./airflow"
+          context: ./airflow
+          file: ./airflow/Dockerfile
           push: true
           tags: |
-            "${{ env.REGISTRY }}/${{ secrets.GHCR_OWNER }}/${{ env.PROJECT_NAME }}_airflow:latest"
-            "${{ env.REGISTRY }}/${{ secrets.GHCR_OWNER }}/${{ env.PROJECT_NAME }}_airflow:${{ needs.validate.outputs.version }}"
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_airflow_elt:latest
+            ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_airflow_elt:${{ github.sha }}
 
   deploy:
-    needs: [validate, build]
+    name: Deploy to production
+    needs: build_app
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     environment:
       name: production
 
+    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout 
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Prepare server
+        
+      - name: Ensure /srv/myproject exists on server
         uses: appleboy/ssh-action@v0.1.7
         with:
-          host: "${{ secrets.SERVER_HOST }}"
-          username: "${{ secrets.SERVER_USER }}"
-          key: "${{ secrets.SERVER_SSH_KEY }}"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
-            sudo mkdir -p ${{ env.DEPLOY_PATH }}
-            sudo chown -R $USER:$USER ${{ env.DEPLOY_PATH }}
+            sudo mkdir -p /srv/myproject
+            sudo chown -R $USER:$USER /srv/myproject || true
 
-      - name: Upload configs
+      - name: Upload docker-compose.prod.yml to server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: "${{ secrets.SERVER_HOST }}"
-          username: "${{ secrets.SERVER_USER }}"
-          key: "${{ secrets.SERVER_SSH_KEY }}"
-          source: |
-            ${{ env.DOCKER_COMPOSE_FILE }}
-            airflow/dags/
-            dbt/
-          target: "${{ env.DEPLOY_PATH }}"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          source: "docker-compose.prod.yml"
+          target: "/srv/myproject/"
 
-      - name: Setup env & permissions
+      - name: Create .env on server from ENV_FILE
         uses: appleboy/ssh-action@v0.1.7
         with:
-          host: "${{ secrets.SERVER_HOST }}"
-          username: "${{ secrets.SERVER_USER }}"
-          key: "${{ secrets.SERVER_SSH_KEY }}"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
-            set -e
-            printf "%s\n" "${{ secrets.ENV_FILE }}" > ${{ env.DEPLOY_PATH }}/.env
-            chmod 600 ${{ env.DEPLOY_PATH }}/.env
+            printf "%s\n" "${{ secrets.ENV_FILE }}" > /srv/myproject/.env
+            chmod 600 /srv/myproject/.env
+            ls -la /srv/myproject/.env
 
-            sudo chown -R ${{ env.AIRFLOW_UID }}:0 ${{ env.DEPLOY_PATH }}/dbt
-            sudo chmod -R 775 ${{ env.DEPLOY_PATH }}/dbt
+      - name: Upload dbt project to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          source: "dbt"
+          target: "/srv/myproject/" 
 
-      - name: Deploy containers
+      - name: Set permissions for dbt project
         uses: appleboy/ssh-action@v0.1.7
         with:
-          host: "${{ secrets.SERVER_HOST }}"
-          username: "${{ secrets.SERVER_USER }}"
-          key: "${{ secrets.SERVER_SSH_KEY }}"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
-            set -e
-            cd ${{ env.DEPLOY_PATH }}
-            docker-compose pull
-            docker-compose down --remove-orphans
-            docker-compose up -d
-            docker-compose ps
+            sudo chmod -R 775 /srv/myproject/dbt
+            sudo chown -R 50000:0 /srv/myproject/dbt
+      
+      - name: Upload airflow dags to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          source: "airflow/dags/*"
+          target: "/srv/myproject/airflow/dags"
 
-      - name: Wait for airflow health
+      - name: Fix permissions for airflow dags
         uses: appleboy/ssh-action@v0.1.7
         with:
-          host: "${{ secrets.SERVER_HOST }}"
-          username: "${{ secrets.SERVER_USER }}"
-          key: "${{ secrets.SERVER_SSH_KEY }}"
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
-            set -e
-            cd ${{ env.DEPLOY_PATH }}
+            sudo chown -R 50000:0 /srv/myproject/airflow/dags
+            sudo chmod -R 755 /srv/myproject/airflow/dags
 
-            CID=$(docker-compose ps -q ${{ env.AIRFLOW_SERVICE }})
-            test -n "$CID" || exit 1
-
-            HAS_HEALTH=$(docker inspect --format='{{if .State.Health}}yes{{end}}' $CID)
-            if [ -z "$HAS_HEALTH" ]; then
-              echo "⚠️ No HEALTHCHECK, skipping wait"
-              exit 0
-            fi
-
-            for i in {1..12}; do
-              STATUS=$(docker inspect --format='{{.State.Health.Status}}' $CID)
-              [ "$STATUS" = "healthy" ] && exit 0
-              sleep 20
-            done
-
-            docker logs $CID --tail=50
-            exit 1
-
-      - name: Deployment summary
-        run: |
-          echo "## ✅ Deployment finished" >> $GITHUB_STEP_SUMMARY
-          echo "- Version: ${{ needs.validate.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Environment: production" >> $GITHUB_STEP_SUMMARY
-          echo "- Actor: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+      - name: Cleanup, Pull images and bring up compose
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            cd /srv/myproject
+            docker-compose -f docker-compose.prod.yml down
+            docker-compose -f docker-compose.prod.yml pull --remove-orphans
+            docker-compose -f docker-compose.prod.yml up -d
+            docker-compose -f docker-compose.prod.yml ps
