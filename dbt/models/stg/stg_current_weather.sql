@@ -6,7 +6,11 @@ with source as (
 
 select
     id as raw_id,
-    (doc->>'city')::text as city,
+    case
+        when lower(doc->>'city') in ('калининград', 'kaliningrad')
+            then 'Kaliningrad'
+        else doc->>'city'
+    end as city,
     (doc->>'country')::text as country,
 
     case
