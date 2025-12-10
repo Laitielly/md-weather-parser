@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir --user \
     dbt-core==1.7.16 \
     dbt-postgres==1.7.16 \
     elementary-data==0.14.1
+RUN pip install --no-cache-dir --upgrade elementary-data
 
 COPY dags/ /opt/airflow/dags/
 RUN mkdir -p /opt/airflow/dbt
