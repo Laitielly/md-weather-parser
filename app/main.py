@@ -15,7 +15,7 @@ from pathlib import Path
 load_dotenv()
 
 app = FastAPI(title="Weather Data Collector API")
-ELEMENTARY_REPORT = Path("/srv/myproject/dbt/edr_target/elementary_report.html")
+ELEMENTARY_REPORT = Path("/opt/airflow/dbt/edr_target/elementary_report.html")
 
 # Конфигурация OpenWeatherMap
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "your_api_key_here")
