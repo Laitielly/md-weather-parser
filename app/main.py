@@ -7,15 +7,13 @@ import time as _time
 from typing import List, Dict, Any
 import requests
 from fastapi import FastAPI, Query, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse
 from pymongo import MongoClient, errors
 from dotenv import load_dotenv
-from pathlib import Path
 
 load_dotenv()
 
 app = FastAPI(title="Weather Data Collector API")
-ELEMENTARY_REPORT = Path("/opt/airflow/dbt/edr_target/elementary_report.html")
 
 # Конфигурация OpenWeatherMap
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "your_api_key_here")
@@ -236,15 +234,19 @@ def startup():
     Thread(target=collect_weather_data, daemon=True).start()
 
 
-@app.get("/elementary/report", response_class=HTMLResponse)
+@app.get("/elementary/report")
 def get_elementary_report():
-    if not ELEMENTARY_REPORT.exists():
-        raise HTTPException(status_code=404, detail="Elementary report not found")
-
-    return HTMLResponse(
-        content=ELEMENTARY_REPORT.read_text(encoding="utf-8"),
-        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
-    )
+    file_path = "/opt/airflow/dbt/edr_target/elementary_report.html"
+    try:
+        return FileResponse(
+            file_path,
+            media_type="text/html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=404, detail=f"Elementary report not available: {e}"
+        )
 
 
 @app.post("/collect/current")
