@@ -47,7 +47,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./airflow
-          file: ./airflow/dockerfile
+          file: ./airflow/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ secrets.GHCR_OWNER }}/weather_parser_airflow_elt:latest
