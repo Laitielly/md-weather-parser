@@ -25,10 +25,6 @@ with DAG(
     },
     tags=["dbt", "weather", "analytics", "elementary"],
 ) as dag:
-    t_dbt_deps = BashOperator(
-        task_id="dbt_deps",
-        bash_command=f"cd {DBT_PROJECT_DIR} && dbt deps",
-    )
 
     t_dbt_seed = BashOperator(
         task_id="dbt_seed",
@@ -59,8 +55,7 @@ with DAG(
     )
 
     (
-        t_dbt_deps
-        >> t_dbt_seed
+        t_dbt_seed
         >> t_dbt_run
         >> t_dbt_test
         >> t_dbt_docs

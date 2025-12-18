@@ -1,3 +1,5 @@
+version: '3.9'
+
 x-airflow-common: &airflow-common-env
   AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
@@ -19,15 +21,50 @@ services:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-airflow}"]
       interval: 5s
       retries: 5
+    restart: unless-stopped
+    # Лимиты памяти для PostgreSQL
+    mem_limit: 512m
+    mem_reservation: 256m
+    memswap_limit: 768m
+    # Оптимизация PostgreSQL для экономии памяти
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c effective_cache_size=256MB
+      -c maintenance_work_mem=64MB
+      -c work_mem=4MB
+      -c max_connections=50
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
-    image: redis:7
+    image: redis:7-alpine  # Используем alpine для экономии места
     ports:
       - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       retries: 5
+    restart: unless-stopped
+    # Лимиты памяти для Redis
+    mem_limit: 256m
+    mem_reservation: 128m
+    memswap_limit: 384m
+    # Оптимизация Redis
+    command: >
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
   postgres_analytics:
     image: postgres:14
@@ -43,6 +80,23 @@ services:
       test: ["CMD", "pg_isready", "-U", "${ANALYTICS_DB_USER:-pguser}", "-d", "${ANALYTICS_DB_NAME:-analytics}"]
       interval: 5s
       retries: 5
+    restart: unless-stopped
+    # Лимиты памяти для аналитической БД
+    mem_limit: 512m
+    mem_reservation: 256m
+    memswap_limit: 768m
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c effective_cache_size=256MB
+      -c maintenance_work_mem=64MB
+      -c work_mem=4MB
+      -c max_connections=30
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   mongodb:
     image: mongo:6
@@ -58,6 +112,21 @@ services:
       interval: 10s
       retries: 5
       start_period: 10s
+    restart: unless-stopped
+    # Лимиты памяти для MongoDB
+    mem_limit: 768m
+    mem_reservation: 512m
+    memswap_limit: 1g
+    # Оптимизация MongoDB
+    command: >
+      mongod
+      --wiredTigerCacheSizeGB 0.5
+      --oplogSize 128
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   app:
     build:
@@ -68,7 +137,7 @@ services:
       - "8081:8081"
     volumes:
       - ./app:/app
-      - ./dbt:/dbt   
+      - ./dbt:/dbt
     restart: unless-stopped
     depends_on:
       - mongodb
@@ -79,6 +148,19 @@ services:
       MONGO_PORT: 27017
       MONGO_USER: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      # Оптимизация памяти приложения
+      JAVA_OPTS: "-Xmx256m -Xms128m"  # если Java приложение
+      PYTHONMALLOC: malloc  # если Python приложение
+      NODE_OPTIONS: "--max-old-space-size=256"  # если Node.js приложение
+    # Лимиты памяти для приложения
+    mem_limit: 512m
+    mem_reservation: 256m
+    memswap_limit: 768m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   airflow-init:
     build:
@@ -100,13 +182,12 @@ services:
         airflow users create --username ${AIRFLOW_WWW_USER_USERNAME:-admin} --password ${AIRFLOW_WWW_USER_PASSWORD:-admin} --firstname Airflow --lastname Admin --role Admin --email admin@example.com || true
       "
     environment:
-      &airflow-common-env
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${AIRFLOW_DB}
-      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
-      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${AIRFLOW_DB}
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      <<: *airflow-common-env
+      # Оптимизация памяти для инициализации
+      AIRFLOW__CELERY__WORKER_CONCURRENCY: 2
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 30
+      AIRFLOW__SCHEDULER__PARSING_PROCESSES: 1
+      PYTHONMALLOC: malloc
       MONGO_HOST: mongodb
       MONGO_PORT: 27017
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
@@ -129,6 +210,11 @@ services:
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./dbt:/opt/airflow/dbt
+    # Лимиты памяти для инициализации (временный контейнер)
+    mem_limit: 384m
+    mem_reservation: 192m
+    memswap_limit: 512m
+    restart: "no"  # Только один раз
 
   airflow-webserver:
     build:
@@ -136,6 +222,11 @@ services:
     user: "${AIRFLOW_UID:-50000}:0"
     environment:
       <<: *airflow-common-env
+      # Оптимизация webserver
+      AIRFLOW__WEBSERVER__WORKERS: 2
+      AIRFLOW__WEBSERVER__WORKER_REFRESH_INTERVAL: 300
+      AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: 120
+      PYTHONMALLOC: malloc
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -153,6 +244,16 @@ services:
       - redis
       - postgres
       - mongodb
+    restart: unless-stopped
+    # Лимиты памяти для webserver
+    mem_limit: 512m
+    mem_reservation: 384m
+    memswap_limit: 768m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   airflow-scheduler:
     build:
@@ -160,6 +261,13 @@ services:
     user: "${AIRFLOW_UID:-50000}:0"
     environment:
       <<: *airflow-common-env
+      # Оптимизация scheduler
+      AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC: 10
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: 30
+      AIRFLOW__SCHEDULER__PARSING_PROCESSES: 1
+      AIRFLOW__SCHEDULER__MAX_TIS_PER_QUERY: 256
+      AIRFLOW__SCHEDULER__PROCESSOR_POLL_INTERVAL: 5
+      PYTHONMALLOC: malloc
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -168,6 +276,16 @@ services:
     command: scheduler
     depends_on:
       - airflow-init
+    restart: unless-stopped
+    # Лимиты памяти для scheduler
+    mem_limit: 768m
+    mem_reservation: 512m
+    memswap_limit: 1g
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   airflow-worker:
     build:
@@ -175,6 +293,13 @@ services:
     user: "${AIRFLOW_UID:-50000}:0"
     environment:
       <<: *airflow-common-env
+      # Оптимизация worker
+      AIRFLOW__CELERY__WORKER_CONCURRENCY: 2
+      AIRFLOW__CELERY__WORKER_PREFETCH_MULTIPLIER: 1
+      AIRFLOW__CELERY__SYNC_PARALLELISM: 1
+      AIRFLOW__OPERATORS__DEFAULT_QUEUE: default
+      AIRFLOW__CELERY__WORKER_SEND_TASK_EVENTS: 'false'
+      PYTHONMALLOC: malloc
     command: celery worker
     depends_on:
       - airflow-init
@@ -184,6 +309,16 @@ services:
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./dbt:/opt/airflow/dbt
+    restart: unless-stopped
+    # Лимиты памяти для worker (может потреблять много при выполнении задач)
+    mem_limit: 1g
+    mem_reservation: 768m
+    memswap_limit: 1.5g
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:

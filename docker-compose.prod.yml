@@ -6,7 +6,7 @@ x-airflow-common: &airflow-common-env
   AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
   AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${AIRFLOW_DB}
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${AIRFLOW_DB}
-  
+
 services:
   postgres:
     image: postgres:14
@@ -20,6 +20,9 @@ services:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-airflow}"]
       interval: 5s
       retries: 5
+    mem_limit: 384m
+    mem_reservation: 256m
+    memswap_limit: 512m
     restart: unless-stopped
 
   redis:
@@ -28,6 +31,9 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       retries: 5
+    mem_limit: 128m
+    mem_reservation: 64m
+    memswap_limit: 256m
     restart: unless-stopped
 
   postgres_analytics:
@@ -44,6 +50,9 @@ services:
       test: ["CMD", "pg_isready", "-U", "${ANALYTICS_DB_USER:-pguser}", "-d", "${ANALYTICS_DB_NAME:-analytics}"]
       interval: 5s
       retries: 5
+    mem_limit: 384m
+    mem_reservation: 256m
+    memswap_limit: 512m
     restart: unless-stopped
 
   mongodb:
@@ -60,6 +69,9 @@ services:
       interval: 10s
       retries: 5
       start_period: 10s
+    mem_limit: 512m
+    mem_reservation: 384m
+    memswap_limit: 768m
     restart: unless-stopped
 
   app:
@@ -77,6 +89,9 @@ services:
       MONGO_PORT: 27017
     volumes:
       - ./dbt:/opt/airflow/dbt
+    mem_limit: 512m
+    mem_reservation: 256m
+    memswap_limit: 768m
 
   airflow-init:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
@@ -122,6 +137,9 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./dbt:/opt/airflow/dbt
+    mem_limit: 256m
+    mem_reservation: 128m
+    memswap_limit: 384m
 
   airflow-webserver:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
@@ -148,6 +166,9 @@ services:
       airflow-init:
         condition: service_completed_successfully
     restart: unless-stopped
+    mem_limit: 384m
+    mem_reservation: 256m
+    memswap_limit: 512m
 
   airflow-scheduler:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
@@ -166,6 +187,9 @@ services:
       airflow-init:
         condition: service_completed_successfully
     restart: unless-stopped
+    mem_limit: 512m
+    mem_reservation: 384m
+    memswap_limit: 768m
 
   airflow-worker:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
@@ -186,6 +210,9 @@ services:
       redis:
         condition: service_started
     restart: unless-stopped
+    mem_limit: 768m
+    mem_reservation: 512m
+    memswap_limit: 1g
 
 volumes:
   postgres_data:

@@ -150,6 +150,15 @@ jobs:
           script: |
             cd /srv/myproject
             docker-compose -f docker-compose.prod.yml down
+
+            # Скачиваем актуальные образы
             docker-compose -f docker-compose.prod.yml pull --remove-orphans
+
+            # Запускаем dbt deps внутри одноразового контейнера airflow.
+            # Предполагается, что в образе airflow установлен dbt и проект dbt монтируется в /opt/airflow/dbt
+            docker-compose -f docker-compose.prod.yml run --rm airflow bash -lc "cd /opt/airflow/dbt && dbt deps --profiles-dir ."
+
+            # Поднимаем сервисы
             docker-compose -f docker-compose.prod.yml up -d
             docker-compose -f docker-compose.prod.yml ps
+
