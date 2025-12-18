@@ -196,6 +196,9 @@ services:
     user: "${AIRFLOW_UID:-50000}:0"
     environment:
       <<: *airflow-common-env
+      AIRFLOW__CELERY__WORKER_CONCURRENCY: 2
+      AIRFLOW__CELERY__WORKER_PREFETCH_MULTIPLIER: 1
+      AIRFLOW__CELERY__FLOWER_ENABLED: 'false'
     volumes:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
