@@ -6,7 +6,7 @@ x-airflow-common: &airflow-common-env
   AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
   AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${AIRFLOW_DB}
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${AIRFLOW_DB}
-
+  
 services:
   postgres:
     image: postgres:14
@@ -20,9 +20,6 @@ services:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-airflow}"]
       interval: 5s
       retries: 5
-    mem_limit: 384m
-    mem_reservation: 256m
-    memswap_limit: 512m
     restart: unless-stopped
 
   redis:
@@ -31,9 +28,6 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       retries: 5
-    mem_limit: 128m
-    mem_reservation: 64m
-    memswap_limit: 256m
     restart: unless-stopped
 
   postgres_analytics:
@@ -50,9 +44,6 @@ services:
       test: ["CMD", "pg_isready", "-U", "${ANALYTICS_DB_USER:-pguser}", "-d", "${ANALYTICS_DB_NAME:-analytics}"]
       interval: 5s
       retries: 5
-    mem_limit: 384m
-    mem_reservation: 256m
-    memswap_limit: 512m
     restart: unless-stopped
 
   mongodb:
@@ -69,9 +60,6 @@ services:
       interval: 10s
       retries: 5
       start_period: 10s
-    mem_limit: 512m
-    mem_reservation: 384m
-    memswap_limit: 768m
     restart: unless-stopped
 
   app:
@@ -89,9 +77,6 @@ services:
       MONGO_PORT: 27017
     volumes:
       - ./dbt:/opt/airflow/dbt
-    mem_limit: 512m
-    mem_reservation: 256m
-    memswap_limit: 768m
 
   airflow-init:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
@@ -137,23 +122,12 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./dbt:/opt/airflow/dbt
-    mem_limit: 256m
-    mem_reservation: 128m
-    memswap_limit: 384m
 
   airflow-webserver:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
     user: "${AIRFLOW_UID:-50000}:0"
     environment:
       <<: *airflow-common-env
-      AIRFLOW__WEBSERVER__WORKERS: 2
-      AIRFLOW__WEBSERVER__WORKER_REFRESH_INTERVAL: 3600
-      AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: 300
-      # Отключите ненужные функции для экономии памяти
-      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'false'
-      AIRFLOW__WEBSERVER__EXPOSE_HOSTNAME: 'false'
-      AIRFLOW__WEBSERVER__EXPOSE_STACKTRACE: 'false'
-      PYTHONMALLOC: malloc
     volumes:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
@@ -161,18 +135,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
     ports:
       - "8080:8080"
-    command: >
-      bash -c "
-        # Очищаем старые PID файлы
-        rm -f /opt/airflow/airflow-webserver.pid 2>/dev/null || true
-        
-        # Запускаем webserver с минимальными настройками
-        exec airflow webserver \
-          --workers 2 \
-          --worker-class sync \
-          --timeout 300 \
-          --access-logfile -
-      "
+    command: webserver
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s
@@ -185,9 +148,6 @@ services:
       airflow-init:
         condition: service_completed_successfully
     restart: unless-stopped
-    mem_limit: 384m
-    mem_reservation: 256m
-    memswap_limit: 512m
 
   airflow-scheduler:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
@@ -206,18 +166,12 @@ services:
       airflow-init:
         condition: service_completed_successfully
     restart: unless-stopped
-    mem_limit: 512m
-    mem_reservation: 384m
-    memswap_limit: 768m
 
   airflow-worker:
     image: ghcr.io/laitielly/weather_parser_airflow_elt:latest
     user: "${AIRFLOW_UID:-50000}:0"
     environment:
       <<: *airflow-common-env
-      AIRFLOW__CELERY__WORKER_CONCURRENCY: 2
-      AIRFLOW__CELERY__WORKER_PREFETCH_MULTIPLIER: 1
-      AIRFLOW__CELERY__FLOWER_ENABLED: 'false'
     volumes:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
@@ -232,9 +186,6 @@ services:
       redis:
         condition: service_started
     restart: unless-stopped
-    mem_limit: 768m
-    mem_reservation: 512m
-    memswap_limit: 1g
 
 volumes:
   postgres_data:
