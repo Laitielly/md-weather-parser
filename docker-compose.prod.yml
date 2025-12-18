@@ -146,6 +146,14 @@ services:
     user: "${AIRFLOW_UID:-50000}:0"
     environment:
       <<: *airflow-common-env
+      AIRFLOW__WEBSERVER__WORKERS: 2
+      AIRFLOW__WEBSERVER__WORKER_REFRESH_INTERVAL: 3600
+      AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: 300
+      # Отключите ненужные функции для экономии памяти
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'false'
+      AIRFLOW__WEBSERVER__EXPOSE_HOSTNAME: 'false'
+      AIRFLOW__WEBSERVER__EXPOSE_STACKTRACE: 'false'
+      PYTHONMALLOC: malloc
     volumes:
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
@@ -153,7 +161,18 @@ services:
       - ./airflow/dags:/opt/airflow/dags
     ports:
       - "8080:8080"
-    command: webserver
+    command: >
+      bash -c "
+        # Очищаем старые PID файлы
+        rm -f /opt/airflow/airflow-webserver.pid 2>/dev/null || true
+        
+        # Запускаем webserver с минимальными настройками
+        exec airflow webserver \
+          --workers 2 \
+          --worker-class sync \
+          --timeout 300 \
+          --access-logfile -
+      "
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s
